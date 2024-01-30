@@ -152,12 +152,18 @@ const addRichPushXcodeProj = async (
     );
   });
 
+  const infoPlistTargetFileFix = `${iosPath}/${PLIST_FILENAME}`;
+  FileManagement.copyFile(
+    `${LOCAL_PATH_TO_CIO_NSE_FILES}/${PLIST_FILENAME}`,
+    infoPlistTargetFileFix
+  );
   /* MODIFY COPIED EXTENSION FILES */
   const infoPlistTargetFile = getTargetFile(PLIST_FILENAME);
   updateNseInfoPlist({
     bundleVersion,
     bundleShortVersion,
     infoPlistTargetFile,
+    infoPlistTargetFileFix,
   });
   updateNseEnv(options, getTargetFile(ENV_FILENAME));
 
@@ -250,15 +256,24 @@ const updateNseInfoPlist = (payload: {
   bundleVersion?: string;
   bundleShortVersion?: string;
   infoPlistTargetFile: string;
+  infoPlistTargetFileFix: string;
 }) => {
   const BUNDLE_SHORT_VERSION_RE = /\{\{BUNDLE_SHORT_VERSION\}\}/;
   const BUNDLE_VERSION_RE = /\{\{BUNDLE_VERSION\}\}/;
 
   let plistFileString = FileManagement.readFile(payload.infoPlistTargetFile);
+  let plistFileFixString = FileManagement.readFile(
+    payload.infoPlistTargetFileFix
+  );
 
   if (payload.bundleVersion) {
     plistFileString = replaceCodeByRegex(
       plistFileString,
+      BUNDLE_VERSION_RE,
+      payload.bundleVersion
+    );
+    plistFileFixString = replaceCodeByRegex(
+      plistFileFixString,
       BUNDLE_VERSION_RE,
       payload.bundleVersion
     );
@@ -270,9 +285,15 @@ const updateNseInfoPlist = (payload: {
       BUNDLE_SHORT_VERSION_RE,
       payload.bundleShortVersion
     );
+    plistFileFixString = replaceCodeByRegex(
+      plistFileFixString,
+      BUNDLE_SHORT_VERSION_RE,
+      payload.bundleShortVersion
+    );
   }
 
   FileManagement.writeFile(payload.infoPlistTargetFile, plistFileString);
+  FileManagement.writeFile(payload.infoPlistTargetFileFix, plistFileFixString);
 };
 
 const updateNseEnv = (
